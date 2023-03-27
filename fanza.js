@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer')
 const axios = require('axios')
 const fs = require('fs')
+const sharp = require('sharp')
+const smartcrop = require('smartcrop-sharp')
 const { setTimeout } = require('timers/promises')
 
 const get = async (url) => {
@@ -84,10 +86,24 @@ const get = async (url) => {
   obj.img = `./img/${unique}.jpg`
   const res = await axios.get(img, { responseType: 'arraybuffer' })
   fs.writeFileSync(obj.img, new Buffer.from(res.data), 'binary')
+  // リサイズ
+  await resizeImg(obj.img)
 
   await browser.close()
 
   return obj
+}
+
+const resizeImg = async (img) => {
+  const width = 600
+  const height = 450
+  const body = fs.readFileSync(img);
+  const result = await smartcrop.crop(body, { width: width, height: height })
+  const crop = result.topCrop;
+  sharp(body)
+    .extract({ width: crop.width, height: crop.height, left: crop.x, top: crop.y })
+    .resize(width, height)
+    .toFile(img);
 }
 
 module.exports = get
